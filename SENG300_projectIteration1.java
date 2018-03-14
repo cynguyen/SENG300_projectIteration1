@@ -3,12 +3,24 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-
 import java.util.Scanner;
-
+import java.util.HashSet;
+import java.util.Set;
+import org.eclipse.jdt.core.dom.AST;
+import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.VariableDeclaration;
+import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
  
 public class SENG300_projectIteration1 {
 
+	private static int a = 0;
+	private static int b = 0;
+	
 	public static void main(String[] args) throws IOException {
 		Scanner scanner = new Scanner(System.in);
 		System.out.print("Enter the pathname: ");
@@ -20,15 +32,14 @@ public class SENG300_projectIteration1 {
 		scanner.close();
 		File folder = new File(pathname);
 		File[] listOfFiles = folder.listFiles();
-		//**************
 		for (int i = 0; i < listOfFiles.length; i++) {
 			File file = listOfFiles[i];
 			if (file.isFile() && file.getName().endsWith(".java")) {
 				System.out.println(file.getName());
 				System.out.println(readFileToString(file.getAbsolutePath()));
+				parse(readFileToString(file.getAbsolutePath()), javaType);
 			} 
 		}
-		//*******************
 	}
  
 	// translate file source code into a string
@@ -49,6 +60,81 @@ public class SENG300_projectIteration1 {
 		reader.close(); // close the reader
 		 
 		return  fileData.toString(); // return the fileData as a string
+	}
+	
+	public static void parse(String source, String type) {
+		ASTParser parse = ASTParser.newParser(AST.JLS2);
+		parse.setKind(ASTParser.K_COMPILATION_UNIT);
+		parse.setSource(source.toCharArray());
+		
+		parse.setResolveBindings(true);
+		parse.setBindingsRecovery(true);
+		
+		CompilationUnit cu = (CompilationUnit)parse.createAST(null);
+		
+		cu.accept(new ASTVisitor() {
+			int countDeclarations = 0;
+			int countReferences = 0;
+			Set names = new HashSet();
+			public boolean visit(VariableDeclarationFragment node) {
+				//System.out.println(node.getParent().toString());
+				String all = node.getParent().toString();
+
+				SimpleName name = node.getName();
+				//System.out.println(name);
+				//this.names.add(name.getIdentifier());
+				String findStr = type;
+				int lastIndex = 0;
+
+				while(lastIndex != -1){
+
+				    lastIndex = all.indexOf(findStr,lastIndex);
+
+				    if(lastIndex != -1){
+				        countDeclarations ++;
+				        a++;
+				        this.names.add(name.getIdentifier());
+				        System.out.println(names);
+				        lastIndex += findStr.length();
+				    }
+				}
+				
+				System.out.println("identifier: " + node.toString());
+				System.out.println(" = " + node.toString().lastIndexOf("="));
+				System.out.println(" = " + node.toString().length());
+				if (node.toString().lastIndexOf("=") != -1) {
+					for (int i = 0; i < names.toArray().length; i++) {
+						String charc = (String) names.toArray()[i];
+						if(node.toString().substring(node.toString().lastIndexOf("="), node.toString().length()).contains(charc)) {
+							System.out.println("count");
+							countReferences++;
+							b++;
+						}
+					}
+
+				}
+				return false;
+
+			}
+			
+//			public boolean visit(VariableDeclarationStatement node) {
+//				System.out.println("identifier: " + node.toString());
+//				for (int i = 0; i < names.toArray().length; i++) {
+//					String charc = (String) names.toArray()[i];
+//					if(node.toString().contains(charc)) {
+//						countReferences++;
+//						b++;
+//					}
+//				}
+//				
+//				return true;
+//			}
+
+		});
+		System.out.println("Declarations: "+a);
+		System.out.println("References: "+b);
+
+
 	}
  
 }
